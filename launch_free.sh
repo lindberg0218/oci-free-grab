@@ -70,13 +70,16 @@ while [ "$(date +%s)" -lt "$END" ]; do
   fi
   log "第 $N 轮 A1: $(reason "$OUT")"
   echo "$OUT" | grep -qi 'LimitExceeded' && { log "限额已满, 停手"; exit 2; }
+  WAIT=$(( SLEEP_SECS + RANDOM % 10 ))
+  # 被限流就退避, 免得越试越封
+  echo "$OUT" | grep -qi 'TooManyRequests' && WAIT=$(( 150 + RANDOM % 60 ))
 
   if [ "${TRY_E2:-0}" = "1" ] && [ -n "$IMG_X86" ] && [ "$IMG_X86" != "null" ]; then
     OUT=$(try VM.Standard.E2.1.Micro '{"ocpus":1,"memoryInGBs":1}' "$IMG_X86" e2-free)
     if echo "$OUT" | grep -q '"lifecycle-state"'; then report "$OUT"; exit 0; fi
     log "第 $N 轮 E2: $(reason "$OUT")"
   fi
-  sleep $(( SLEEP_SECS + RANDOM % 10 ))
+  sleep "$WAIT"
 done
 log "本轮没抢到, 下一轮由定时任务继续"
 exit 0

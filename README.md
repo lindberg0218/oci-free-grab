@@ -3,9 +3,9 @@
 Oracle Cloud 免费机自动抢注（新加坡 ap-singapore-1）。
 
 每 10 分钟由 GitHub Actions 触发，单次跑 8 分钟：
-1. 先试 `VM.Standard.A1.Flex` 2 OCPU / 12GB（2026-06 起 Always Free 额度，旧文里写的 4/24 已失效）
-2. 没货再试 `VM.Standard.E2.1.Micro` 1 OCPU / 1GB
-3. 任一建成即退出，日志里打印实例 OCID、公网 IP
+1. 只试 `VM.Standard.A1.Flex` 2 OCPU / 12GB（2026-06 起 Always Free 额度，旧文里写的 4/24 已失效）
+2. 要启用 E2 兜底：仓库 Variables 加 `TRY_E2=1`（当前默认关闭，按要求先只抢 A1 一个月）
+3. 建成即退出，日志里打印实例 OCID、公网 IP
 
 ## Secrets（Settings → Secrets and variables → Actions）
 

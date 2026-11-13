@@ -1,0 +1,51 @@
+name: grab-free-vps
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/10 * * * *"
+
+concurrency:
+  group: grab
+  cancel-in-progress: false
+
+jobs:
+  grab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install OCI CLI
+        run: pip install --quiet oci-cli
+
+      - name: Write OCI config
+        env:
+          OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+          OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+        run: |
+          mkdir -p ~/.oci
+          printf '%s\n' "$OCI_PRIVATE_KEY" > ~/.oci/oci_api_key.pem
+          chmod 600 ~/.oci/oci_api_key.pem
+          cat > ~/.oci/config <<EOF
+          [DEFAULT]
+          user=$OCI_USER_OCID
+          fingerprint=$OCI_FINGERPRINT
+          key_file=$HOME/.oci/oci_api_key.pem
+          tenancy=$OCI_TENANCY_OCID
+          region=ap-singapore-1
+          EOF
+
+      - name: Try to launch (loop ~8 min)
+        env:
+          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+          OCI_SUBNET_ID: ${{ secrets.OCI_SUBNET_ID }}
+          SSH_PUBKEY: ${{ secrets.SSH_PUBKEY }}
+          DEADLINE_SECS: "480"
+        run: bash launch_free.sh

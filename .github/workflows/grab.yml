@@ -79,5 +79,5 @@ jobs:
           echo "现有实例数: $n"
           if [ "$n" -gt 0 ] 2>/dev/null; then echo "已有实例, 不再链式触发"; exit 0; fi
           sleep 120
-          gh workflow run grab.yml --ref "${GITHUB_REF_NAME:-master}"
+          gh workflow run grab.yml --repo "$GITHUB_REPOSITORY" --ref "${GITHUB_REF_NAME:-master}"
           echo "已触发下一轮"

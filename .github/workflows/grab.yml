@@ -7,16 +7,17 @@ on:
 
 concurrency:
   group: grab
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: read
   issues: write
+  actions: write
 
 jobs:
   grab:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     env:
       OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING: "True"
     steps:
@@ -66,3 +67,16 @@ jobs:
           gh issue create \
             --title "✅ 免费 A1 实例已建成" \
             --body "GitHub Actions 抢到免费机了。控制台查看公网IP: https://cloud.oracle.com/compute/instances?region=ap-singapore-1 ｜ 抢到后请停用本 workflow: Settings -> Actions -> grab-free-vps -> Disable"
+
+      - name: Chain next run
+        if: ${{ hashFiles('.grabbed') == '' && vars.STOP != '1' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+        run: |
+          n=$(oci compute instance list --compartment-id "$OCI_TENANCY_OCID" --query 'length(data)' --raw-output 2>/dev/null || echo 0)
+          echo "现有实例数: $n"
+          if [ "$n" != "0" ]; then echo "已有实例, 不再链式触发"; exit 0; fi
+          sleep 540
+          gh workflow run grab.yml --ref "${GITHUB_REF_NAME:-master}"
+          echo "已触发下一轮"

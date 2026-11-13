@@ -48,4 +48,5 @@ jobs:
           OCI_SUBNET_ID: ${{ secrets.OCI_SUBNET_ID }}
           SSH_PUBKEY: ${{ secrets.SSH_PUBKEY }}
           DEADLINE_SECS: "480"
+          TRY_E2: ${{ vars.TRY_E2 || '0' }}
         run: bash launch_free.sh

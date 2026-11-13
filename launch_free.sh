@@ -54,7 +54,7 @@ while [ "$(date +%s)" -lt "$END" ]; do
     echo "$OUT" | grep -qi 'capacity\|容量不足\|OutOfCapacity\|HostCapacity\|429\|TooManyRequests\|timed out' \
       || log "A1 异常: $(echo "$OUT" | tr -d '\n' | cut -c1-300)"
   fi
-  if [ -n "$IMG_X86" ] && [ "$IMG_X86" != "null" ]; then
+  if [ "${TRY_E2:-0}" = "1" ] && [ -n "$IMG_X86" ] && [ "$IMG_X86" != "null" ]; then
     OUT=$(try VM.Standard.E2.1.Micro '{"ocpus":1,"memoryInGBs":1}' "$IMG_X86" e2-free)
     if echo "$OUT" | grep -q '"lifecycle-state"'; then report "$OUT"; exit 0; fi
     echo "$OUT" | grep -qi 'capacity\|容量不足\|OutOfCapacity\|HostCapacity\|429\|TooManyRequests\|timed out' \

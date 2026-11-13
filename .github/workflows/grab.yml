@@ -13,6 +13,8 @@ jobs:
   grab:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING: "True"
     steps:
       - uses: actions/checkout@v4
 
@@ -32,7 +34,6 @@ jobs:
         run: |
           mkdir -p ~/.oci
           printf '%s\n' "$OCI_PRIVATE_KEY" > ~/.oci/oci_api_key.pem
-          chmod 600 ~/.oci/oci_api_key.pem
           cat > ~/.oci/config <<EOF
           [DEFAULT]
           user=$OCI_USER_OCID
@@ -41,6 +42,8 @@ jobs:
           tenancy=$OCI_TENANCY_OCID
           region=ap-singapore-1
           EOF
+          chmod 700 ~/.oci
+          chmod 600 ~/.oci/oci_api_key.pem ~/.oci/config
 
       - name: Try to launch (loop ~8 min)
         env:

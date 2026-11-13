@@ -18,15 +18,20 @@ AD=$(oci iam availability-domain list --compartment-id "$COMPARTMENT_ID" --regio
 case "$AD" in ""|null) echo "AD 解析失败"; exit 1;; esac
 log "AD=$AD"
 
-img(){ # $1=JMESPath 过滤条件
-  oci compute image list --compartment-id "$COMPARTMENT_ID" --region "$REGION" \
+img(){ # $1=过滤条件
+  ERR=$(mktemp)
+  OUT=$(oci compute image list --compartment-id "$COMPARTMENT_ID" --region "$REGION" \
     --operating-system "Canonical Ubuntu" --operating-system-version "22.04" \
-    --query "data[$1].{id:id,t:\"time-created\"} | sort_by(@,&t) | [-1].id" \
-    --raw-output 2>/dev/null
+    --query "data[?contains(\"display-name\", '22.04') && $1] | sort_by(@, &\"time-created\") | [-1].id" \
+    --raw-output 2>"$ERR")
+  [ -s "$ERR" ] && echo "[img] $(grep -v -i warning "$ERR" | head -2 | tr '\n' ' ')" >&2
+  rm -f "$ERR"
+  printf '%s' "$OUT"
 }
-IMG_ARM=$(img 'contains("display-name", `aarch64`)')
-IMG_X86=$(img '!contains("display-name", `aarch64`) && contains("display-name", `22.04`)')
+IMG_ARM=$(img "contains(\"display-name\", 'aarch64')")
+IMG_X86=$(img "!contains(\"display-name\", 'aarch64')")
 log "IMG_ARM=$IMG_ARM"; log "IMG_X86=$IMG_X86"
+[ -z "$IMG_ARM" ] && { log "ARM 镜像解析为空, 中止"; exit 1; }
 
 try(){
   oci compute instance launch --region "$REGION" --availability-domain "$AD" \

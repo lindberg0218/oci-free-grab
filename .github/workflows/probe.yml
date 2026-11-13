@@ -1,0 +1,50 @@
+name: probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install OCI CLI
+        run: pip install --quiet oci-cli
+
+      - name: Write OCI config
+        env:
+          OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+          OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+        run: |
+          mkdir -p ~/.oci
+          printf '%s\n' "$OCI_PRIVATE_KEY" > ~/.oci/oci_api_key.pem
+          chmod 600 ~/.oci/oci_api_key.pem
+          cat > ~/.oci/config <<EOF
+          [DEFAULT]
+          user=$OCI_USER_OCID
+          fingerprint=$OCI_FINGERPRINT
+          key_file=$HOME/.oci/oci_api_key.pem
+          tenancy=$OCI_TENANCY_OCID
+          region=ap-singapore-1
+          EOF
+
+      - name: Whoami (auth check)
+        env:
+          T: ${{ secrets.OCI_TENANCY_OCID }}
+        run: |
+          echo "== tenancy =="
+          oci iam tenancy get --tenancy-id "$T" --query 'data.name' --raw-output || true
+          echo "== AD =="
+          oci iam availability-domain list --compartment-id "$T" --query 'data[].name' --raw-output || true
+          echo "== subnets in VCN =="
+          oci network subnet list --compartment-id "$T" --vcn-id "${{ vars.VCN_ID }}" \
+            --query 'data[].{name:"display-name",id:id,cidr:"cidr-block"}' --output table || true
+          echo "== existing instances =="
+          oci compute instance list --compartment-id "$T" \
+            --query 'data[].{name:"display-name",state:"lifecycle-state"}' --output table || true

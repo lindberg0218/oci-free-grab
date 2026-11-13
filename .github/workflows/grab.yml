@@ -9,6 +9,10 @@ concurrency:
   group: grab
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   grab:
     runs-on: ubuntu-latest
@@ -53,3 +57,12 @@ jobs:
           DEADLINE_SECS: "480"
           TRY_E2: ${{ vars.TRY_E2 || '0' }}
         run: bash launch_free.sh
+
+      - name: Notify on success
+        if: ${{ hashFiles('.grabbed') != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "✅ 免费 A1 实例已建成" \
+            --body "GitHub Actions 抢到免费机了。控制台查看公网IP: https://cloud.oracle.com/compute/instances?region=ap-singapore-1 ｜ 抢到后请停用本 workflow: Settings -> Actions -> grab-free-vps -> Disable"

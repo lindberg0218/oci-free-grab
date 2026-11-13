@@ -48,7 +48,7 @@ N=0
 while [ "$(date +%s)" -lt "$END" ]; do
   N=$((N+1)); log "第 $N 轮"
   if [ -n "$IMG_ARM" ] && [ "$IMG_ARM" != "null" ]; then
-    OUT=$(try VM.Standard.A1.Flex '{"ocpus":4,"memoryInGBs":24}' "$IMG_ARM" a1-free)
+    OUT=$(try VM.Standard.A1.Flex '{"ocpus":2,"memoryInGBs":12}' "$IMG_ARM" a1-free)
     if echo "$OUT" | grep -q '"lifecycle-state"'; then report "$OUT"; exit 0; fi
     echo "$OUT" | grep -qi 'capacity\|容量不足\|OutOfCapacity\|HostCapacity\|429\|TooManyRequests\|timed out' \
       || log "A1 异常: $(echo "$OUT" | tr -d '\n' | cut -c1-300)"

@@ -40,7 +40,8 @@ try(){ # $1=shape $2=shape-config $3=image $4=name
     --compartment-id "$COMPARTMENT_ID" --shape "$1" --shape-config "$2" \
     --subnet-id "$SUBNET_ID" --assign-public-ip true --display-name "$4" \
     --metadata "{\"ssh_authorized_keys\": \"$SSH_PUBKEY\"}" \
-    --source-details "{\"sourceType\":\"image\",\"imageId\":\"$3\",\"bootVolumeSizeInGBs\":$BOOT_GB}" 2>&1
+    --source-details "{\"sourceType\":\"image\",\"imageId\":\"$3\",\"bootVolumeSizeInGBs\":$BOOT_GB}" 2>&1 \
+    | grep -v -e '^Warning:' -e 'append an extra line'
 }
 
 report(){ # $1=launch 输出

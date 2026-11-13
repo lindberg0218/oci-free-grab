@@ -64,5 +64,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh workflow run grab.yml --ref "${GITHUB_REF_NAME:-master}"
+          gh workflow run grab.yml --repo "$GITHUB_REPOSITORY" --ref "${GITHUB_REF_NAME:-master}"
           echo "dispatch 已发出"

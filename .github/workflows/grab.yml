@@ -74,9 +74,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
         run: |
-          n=$(oci compute instance list --compartment-id "$OCI_TENANCY_OCID" --query 'length(data)' --raw-output 2>/dev/null || echo 0)
+          n=$(oci compute instance list --compartment-id "$OCI_TENANCY_OCID" --output json 2>/dev/null | grep -c '"id": *"ocid1.instance' || true)
+          [ -z "$n" ] && n=0
           echo "现有实例数: $n"
-          if [ "$n" != "0" ]; then echo "已有实例, 不再链式触发"; exit 0; fi
-          sleep 540
+          if [ "$n" -gt 0 ] 2>/dev/null; then echo "已有实例, 不再链式触发"; exit 0; fi
+          sleep 120
           gh workflow run grab.yml --ref "${GITHUB_REF_NAME:-master}"
           echo "已触发下一轮"

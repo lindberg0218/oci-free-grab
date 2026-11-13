@@ -2,6 +2,14 @@ name: probe
 
 on:
   workflow_dispatch:
+    inputs:
+      chain:
+        description: "1=测试链式触发(会真的 dispatch grab)"
+        default: "0"
+
+permissions:
+  contents: read
+  actions: write
 
 jobs:
   probe:
@@ -46,5 +54,15 @@ jobs:
           oci network subnet list --compartment-id "$T" --vcn-id "${{ vars.VCN_ID }}" \
             --query 'data[].{name:"display-name",id:id,cidr:"cidr-block"}' --output table || true
           echo "== existing instances =="
+          n=$(oci compute instance list --compartment-id "$T" --output json 2>/dev/null | grep -c '"id": *"ocid1.instance' || true)
+          echo "实例计数(链式判断用): ${n:-空}"
           oci compute instance list --compartment-id "$T" \
             --query 'data[].{name:"display-name",state:"lifecycle-state"}' --output table || true
+
+      - name: Chain dispatch test
+        if: ${{ inputs.chain == '1' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run grab.yml --ref "${GITHUB_REF_NAME:-master}"
+          echo "dispatch 已发出"

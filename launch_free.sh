@@ -18,13 +18,14 @@ AD=$(oci iam availability-domain list --compartment-id "$COMPARTMENT_ID" --regio
 case "$AD" in ""|null) echo "AD 解析失败"; exit 1;; esac
 log "AD=$AD"
 
-img(){ # $1=匹配串
+img(){ # $1=JMESPath 过滤条件
   oci compute image list --compartment-id "$COMPARTMENT_ID" --region "$REGION" \
     --operating-system "Canonical Ubuntu" --operating-system-version "22.04" \
-    --query "data[?contains(\"display-name\", \`$1\`)].{id:id,t:\"time-created\"} | sort_by(@,&t) | [-1].id" \
+    --query "data[$1].{id:id,t:\"time-created\"} | sort_by(@,&t) | [-1].id" \
     --raw-output 2>/dev/null
 }
-IMG_ARM=$(img aarch64); IMG_X86=$(img x86_64)
+IMG_ARM=$(img 'contains("display-name", `aarch64`)')
+IMG_X86=$(img '!contains("display-name", `aarch64`) && contains("display-name", `22.04`)')
 log "IMG_ARM=$IMG_ARM"; log "IMG_X86=$IMG_X86"
 
 try(){

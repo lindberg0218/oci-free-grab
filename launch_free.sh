@@ -56,6 +56,7 @@ report(){ # $1=launch 输出
   done
   log "公网IP: $PIP"
   log "登录: ssh -i ~/.ssh/oracle_free ubuntu@$PIP"
+  touch "${GITHUB_WORKSPACE:-.}/.grabbed"
 }
 
 reason(){ echo "$1" | tr '\n' ' ' | tr -s ' ' | cut -c1-200; }

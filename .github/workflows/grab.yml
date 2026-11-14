@@ -2,6 +2,10 @@ name: grab-free-vps
 
 on:
   workflow_dispatch:
+    inputs:
+      deadline:
+        description: "单轮尝试秒数(默认480)"
+        default: "480"
   schedule:
     - cron: "*/10 * * * *"
 
@@ -55,7 +59,7 @@ jobs:
           OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
           OCI_SUBNET_ID: ${{ secrets.OCI_SUBNET_ID }}
           SSH_PUBKEY: ${{ secrets.SSH_PUBKEY }}
-          DEADLINE_SECS: "480"
+          DEADLINE_SECS: ${{ inputs.deadline || '480' }}
           TRY_E2: ${{ vars.TRY_E2 || '0' }}
         run: bash launch_free.sh
 
@@ -69,7 +73,7 @@ jobs:
             --body "GitHub Actions 抢到免费机了。控制台查看公网IP: https://cloud.oracle.com/compute/instances?region=ap-singapore-1 ｜ 抢到后请停用本 workflow: Settings -> Actions -> grab-free-vps -> Disable"
 
       - name: Chain next run
-        if: ${{ hashFiles('.grabbed') == '' && vars.STOP != '1' }}
+        if: ${{ always() && hashFiles('.grabbed') == '' && vars.STOP != '1' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
@@ -79,5 +83,10 @@ jobs:
           echo "现有实例数: $n"
           if [ "$n" -gt 0 ] 2>/dev/null; then echo "已有实例, 不再链式触发"; exit 0; fi
           sleep 120
-          gh workflow run grab.yml --repo "$GITHUB_REPOSITORY" --ref "${GITHUB_REF_NAME:-master}"
-          echo "已触发下一轮"
+          for i in 1 2 3; do
+            if gh workflow run grab.yml --repo "$GITHUB_REPOSITORY" --ref "${GITHUB_REF_NAME:-master}"; then
+              echo "已触发下一轮 (第 $i 次)"; exit 0
+            fi
+            echo "dispatch 失败, 30s 后重试"; sleep 30
+          done
+          echo "!! 链式触发连续失败, 需要人工介入"; exit 1
